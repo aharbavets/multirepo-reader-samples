@@ -1,0 +1,5 @@
+.DS_Store
+
+# This repository carries its icon in `.multirepo-studio.json`, not in `.idea`,
+# so the IDE's folder is ignored whole.
+.idea/
