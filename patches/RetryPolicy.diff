@@ -1,0 +1,49 @@
+From 4c1f0b2e9a7d3c81f5b6a0d4e2c9187f3ab5d6e0 Mon Sep 17 00:00:00 2001
+From: Payments <payments@example.com>
+Date: Tue, 8 Sep 2026 09:41:12 -0700
+Subject: [PATCH] Spread retries out with jitter so a shared outage stops
+ producing a thundering herd
+
+Every caller backed off by exactly the same amount, so all of them came back
+at exactly the same moment and knocked the processor over a second time.
+
+diff --git a/Sources/RetryPolicy.swift b/Sources/RetryPolicy.swift
+index 8f3d21a..b47c905 100644
+--- a/Sources/RetryPolicy.swift
++++ b/Sources/RetryPolicy.swift
+@@ -19,18 +19,29 @@ struct RetryPolicy {
+     let maximumDelay: TimeInterval
+     let factor: Double
+ 
++    /// How much of a wait may be given up or added at random, as a fraction of
++    /// the wait itself. At `0.2` a two-second wait lands somewhere between 1.6
++    /// and 2.4 seconds, which is enough to break up a synchronized retry.
++    let jitter: Double
++
+     static let standard = RetryPolicy(
+         attempts: 4,
+         initialDelay: 0.25,
+         maximumDelay: 8,
+-        factor: 2
++        factor: 2,
++        jitter: 0.2
+     )
+ 
+     /// The wait before `attempt`, which is 1-based: attempt 1 never waits.
+     func delay(before attempt: Int) -> TimeInterval {
+         guard attempt > 1 else { return 0 }
+         let exponent = Double(attempt - 2)
+-        return min(initialDelay * pow(factor, exponent), maximumDelay)
++        let planned = min(initialDelay * pow(factor, exponent), maximumDelay)
++        return Self.applying(jitter: jitter, to: planned)
++    }
++
++    private static func applying(jitter: Double, to delay: TimeInterval) -> TimeInterval {
++        guard jitter > 0 else { return delay }
++        let spread = delay * jitter
++        return max(0, delay + Double.random(in: -spread...spread))
+     }
+ }
+ 
+-- 
+2.45.2
