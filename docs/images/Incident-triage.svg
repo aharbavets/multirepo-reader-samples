@@ -28,7 +28,7 @@
     <rect x="44" y="226" width="172" height="46" rx="10" fill="#0B5D45"/>
     <text x="130" y="255" font-size="15" font-weight="600" fill="#FFFFFF">Roll back</text>
 
-    <rect x="424" y="226" width="172" height="46" rx="10" fill="#B06A0B"/>
+    <rect x="424" y="226" width="172" height="46" rx="10" fill="#8A5300"/>
     <text x="510" y="255" font-size="15" font-weight="600" fill="#FFFFFF">Shed load</text>
   </g>
 </svg>
