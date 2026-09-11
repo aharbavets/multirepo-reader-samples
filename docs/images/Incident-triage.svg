@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" width="640" height="300"
+     role="img" aria-label="Flow chart: the pager fires, then the question is whether latency is up too. No leads to Roll back, yes leads to Shed load.">
+  <!-- Painted card, for the same reason as the other diagram: the reader picks
+       the paper, and a transparent diagram vanishes on a dark one. -->
+  <rect width="640" height="300" rx="14" fill="#FFFFFF"/>
+  <rect x="0.5" y="0.5" width="639" height="299" rx="13.5" fill="none" stroke="#E2E2E2"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" text-anchor="middle">
+    <text x="320" y="36" font-size="18" font-weight="600" fill="#1A1A1A">The first ninety seconds</text>
+
+    <rect x="230" y="56" width="180" height="46" rx="10" fill="#0B5D45"/>
+    <text x="320" y="85" font-size="15" font-weight="600" fill="#FFFFFF">Pager fires</text>
+
+    <path d="M320 102 V132" stroke="#8A8A8A" stroke-width="2"/>
+    <path d="M320 140 l-5 -9 h10 Z" fill="#8A8A8A"/>
+
+    <rect x="190" y="142" width="260" height="50" rx="25" fill="#F4F4F4" stroke="#D6D6D6"/>
+    <text x="320" y="173" font-size="15" fill="#1A1A1A">Is latency up as well?</text>
+
+    <path d="M190 167 H130 V216" stroke="#8A8A8A" stroke-width="2" fill="none"/>
+    <path d="M130 224 l-5 -9 h10 Z" fill="#8A8A8A"/>
+    <path d="M450 167 H510 V216" stroke="#8A8A8A" stroke-width="2" fill="none"/>
+    <path d="M510 224 l-5 -9 h10 Z" fill="#8A8A8A"/>
+
+    <text x="152" y="160" font-size="12.5" fill="#707070">no</text>
+    <text x="488" y="160" font-size="12.5" fill="#707070">yes</text>
+
+    <rect x="44" y="226" width="172" height="46" rx="10" fill="#0B5D45"/>
+    <text x="130" y="255" font-size="15" font-weight="600" fill="#FFFFFF">Roll back</text>
+
+    <rect x="424" y="226" width="172" height="46" rx="10" fill="#B06A0B"/>
+    <text x="510" y="255" font-size="15" font-weight="600" fill="#FFFFFF">Shed load</text>
+  </g>
+</svg>
