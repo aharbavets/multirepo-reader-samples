@@ -1,11 +1,7 @@
-From 4c1f0b2e9a7d3c81f5b6a0d4e2c9187f3ab5d6e0 Mon Sep 17 00:00:00 2001
-From: Payments <payments@example.com>
-Date: Tue, 8 Sep 2026 09:41:12 -0700
-Subject: [PATCH] Spread retries out with jitter so a shared outage stops
- producing a thundering herd
+Spread retries out with jitter so a shared outage stops producing a thundering herd
 
-Every caller backed off by exactly the same amount, so all of them came back
-at exactly the same moment and knocked the processor over a second time.
+Every caller backed off by exactly the same amount, so all of them came back at
+exactly the same moment and knocked the processor over a second time.
 
 diff --git a/Sources/RetryPolicy.swift b/Sources/RetryPolicy.swift
 index 8f3d21a..b47c905 100644
