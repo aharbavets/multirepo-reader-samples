@@ -19,9 +19,9 @@ Between them the samples show what the Reader can display:
 - a diff,
 - a PDF.
 
-The first three ship inside the app as described above.
-The PDF does not, and cannot: a PDF has no text to bundle, so the Reader downloads it the first time it is opened and keeps a copy on the device afterwards.
-That is the one sample which needs a network the first time, and it is why it is listed last.
+All four ship inside the app as described above, the PDF included — so it opens on a plane like the rest.
+It travels a little differently, because a PDF is bytes rather than text: the Reader puts its copy straight into the same on-device store a downloaded document would go to, instead of carrying it on the queue entry.
+Nothing about that is visible while reading; it matters only if the copy is ever cleared, at which point the Reader fetches this one again from here.
 
 [`docs/Incident-review.pdf`](docs/Incident-review.pdf) is exported from [`docs/Incident-review.html`](docs/Incident-review.html) beside it, which is the source of truth — the same arrangement as the diagrams, where the `.svg` is the original and the `.png` is made from it.
 To regenerate it after editing the HTML:
