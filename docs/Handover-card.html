@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>On-call handover — Payments</title>
+<style>
+  /* ⚠️ One family, regular and bold only — no italic, no monospace.
+     Chrome embeds a separate font subset per page per face, so every extra
+     face multiplies across the whole document. This card is deliberately
+     small enough to travel inside a link and a sync record. */
+  @page { size: A4; margin: 20mm; }
+  html { font-size: 11.5pt; }
+  body { font-family: Helvetica, Arial, sans-serif; line-height: 1.5; color: #1b1b1d; margin: 0; }
+  h1 { font-size: 1.7rem; margin: 0 0 0.15rem; }
+  h2 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; border-bottom: 1px solid #d5d2cc; padding-bottom: 0.2rem; }
+  .sub { color: #6b6863; font-size: 0.95rem; margin: 0 0 1.3rem; }
+  ul, ol { padding-left: 1.15rem; margin: 0.4rem 0 0.9rem; }
+  li { margin: 0.28rem 0; }
+  .lead { font-weight: bold; }
+  .box { border: 1px solid #d5d2cc; padding: 0.6rem 0.8rem; margin: 0.9rem 0 1.2rem; background: #f7f5f1; }
+  .footnote { font-size: 0.86rem; color: #6b6863; margin-top: 1.8rem; border-top: 1px solid #d5d2cc; padding-top: 0.5rem; }
+  h1, h2 { break-after: avoid; }
+  li, .box { break-inside: avoid; }
+</style>
+
+<h1>On-call handover: Payments</h1>
+<p class="sub">Week of 14 September 2026 · handed over Monday 09:30 · print it or keep it open</p>
+
+<p class="lead">Read this before you take the pager. It is one week of context, not a runbook — the runbook is a separate document and it is the thing to open when something is actually paging.</p>
+
+<h2>What you are taking on</h2>
+
+<ul>
+  <li><span class="lead">checkout-service</span> — the one that pages. Two incidents this month, both releases, both rolled back.</li>
+  <li><span class="lead">ledger-writer</span> — quiet, but it is the only service with no automatic rollback. If it needs one, it is a manual deploy and it takes eleven minutes.</li>
+  <li><span class="lead">refund-worker</span> — a queue. It has never paged. When it backs up it does so slowly, so the alert is a warning rather than a page, and it usually clears itself.</li>
+</ul>
+
+<h2>Live right now</h2>
+
+<div class="box">
+  <p><span class="lead">The connection-pool fix is half done.</span> The queue is bounded, which is the half that stops an outage. Taking the pool out of the health check is still in review, so a struggling database will still remove every instance at once. If that happens, roll back or scale out; do not wait for the database to recover on its own.</p>
+</div>
+
+<ul>
+  <li>A release freeze is in force until Thursday while the payment processor migrates. Emergency rollbacks are still allowed — the freeze is on new features, not on undoing them.</li>
+  <li>The staging database was restored from a Friday snapshot, so anything you test against it is a week stale.</li>
+  <li>One customer, a large one, is being manually reconciled after the 8 September incident. Their account is flagged; do not run bulk refunds this week without asking.</li>
+</ul>
+
+<h2>Things that look wrong and are not</h2>
+
+<ul>
+  <li><span class="lead">A spike at 02:00 every night.</span> That is the reconciliation job. It lasts about four minutes and it is supposed to.</li>
+  <li><span class="lead">Error rate rising every Friday afternoon.</span> A partner retries aggressively into an endpoint they should not be using. It is their bug, it is filed, and it does no harm.</li>
+  <li><span class="lead">The dashboard&rsquo;s p99 flatlining.</span> It flatlines when there is no traffic, not when everything is fast.</li>
+</ul>
+
+<h2>If you need somebody</h2>
+
+<ul>
+  <li>Say it in the team channel first, even if it is only <span class="lead">I have it</span>. Two people on one incident separately is worse than one person on it slowly.</li>
+  <li>The Payments lead is reachable out of hours and would much rather be woken than told afterwards.</li>
+  <li>The database team has its own rota and answers quickly. You do not need permission to page them.</li>
+</ul>
+
+<h2>Before you hand it on</h2>
+
+<ol>
+  <li>Update this card. It is only worth reading because the last person did.</li>
+  <li>Close or re-assign anything you opened. An alert that was silenced for a day and never un-silenced is how the next outage goes unnoticed.</li>
+  <li>Say out loud what you did not get to. Nobody finishes a week of on-call with an empty list, and pretending otherwise is what makes the next person think they are the only one.</li>
+</ol>
+
+<p class="footnote">Sample content for Multirepo Reader. The services, the week and the people are invented; the shape of a handover is not.</p>

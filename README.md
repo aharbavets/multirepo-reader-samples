@@ -19,17 +19,29 @@ Between them the samples show what the Reader can display:
 - a diff,
 - a PDF.
 
-All four ship inside the app as described above, the PDF included — so it opens on a plane like the rest.
+All four kinds ship inside the app as described above, the PDF included — so it opens on a plane like the rest.
 It travels a little differently, because a PDF is bytes rather than text: the Reader puts its copy straight into the same on-device store a downloaded document would go to, instead of carrying it on the queue entry.
 Nothing about that is visible while reading; it matters only if the copy is ever cleared, at which point the Reader fetches this one again from here.
 
-[`docs/Incident-review.pdf`](docs/Incident-review.pdf) is exported from [`docs/Incident-review.html`](docs/Incident-review.html) beside it, which is the source of truth — the same arrangement as the diagrams, where the `.svg` is the original and the `.png` is made from it.
-To regenerate it after editing the HTML:
+### The two PDFs
+
+There are two, and the difference between them is **size**, not subject.
+
+| File | Pages | Size | For |
+| --- | --- | --- | --- |
+| [`docs/Incident-review.pdf`](docs/Incident-review.pdf) | 4 | ~200 KB | Reading. Long enough that scrolling, the progress figure and reopening where you left off are all visible. |
+| [`docs/Handover-card.pdf`](docs/Handover-card.pdf) | 2 | ~73 KB | Travelling. Small enough to ride inside a link and a sync record, which the larger one is not. |
+
+⚠️ **The small one is small on purpose and it is easy to undo by accident.** Almost all of a PDF's weight here is embedded fonts, and Chrome embeds a *separate subset per page, per face* — it does not share them. The four-page document uses a serif, its bold, its italic and a monospace face, which is fourteen embedded font programs; the card uses one family in regular and bold across two pages, which is six. Adding an italic or a snippet of code to the card is what would quietly push it back over the line.
+
+### Regenerating them
+
+Each `.pdf` is exported from the `.html` of the same name beside it, which is the source of truth — the same arrangement as the diagrams, where the `.svg` is the original and the `.png` is made from it.
 
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
-  --print-to-pdf=docs/Incident-review.pdf --no-pdf-header-footer \
-  file://"$PWD"/docs/Incident-review.html
+  --print-to-pdf=docs/Handover-card.pdf --no-pdf-header-footer \
+  file://"$PWD"/docs/Handover-card.html
 ```
 
 ## Using them yourself
