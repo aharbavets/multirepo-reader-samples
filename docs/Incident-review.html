@@ -1,0 +1,126 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Incident review — checkout-service, 8 September 2026</title>
+<style>
+  @page { size: A4; margin: 18mm 20mm; }
+  html { font-size: 11.5pt; }
+  body {
+    font-family: "Iowan Old Style", Palatino, Georgia, serif;
+    line-height: 1.5; color: #1b1b1d; margin: 0;
+  }
+  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 0.2rem; }
+  h2 { font-size: 1.25rem; margin: 1.5rem 0 0.5rem; border-bottom: 1px solid #d5d2cc; padding-bottom: 0.25rem; }
+  h3 { font-size: 1.02rem; margin: 1.4rem 0 0.35rem; }
+  .sub { color: #6b6863; font-size: 0.95rem; margin: 0 0 1.4rem; }
+  .facts { width: 100%; border-collapse: collapse; margin: 0 0 1.6rem; font-size: 0.95rem; }
+  .facts th, .facts td { border: 1px solid #d5d2cc; padding: 0.35rem 0.55rem; text-align: left; vertical-align: top; }
+  .facts th { width: 11rem; background: #f4f2ee; font-weight: 600; }
+  table.timeline { width: 100%; border-collapse: collapse; font-size: 0.93rem; margin: 0.6rem 0 1.2rem; }
+  table.timeline th, table.timeline td { border: 1px solid #d5d2cc; padding: 0.3rem 0.5rem; vertical-align: top; }
+  table.timeline th { background: #f4f2ee; text-align: left; }
+  table.timeline td:first-child { white-space: nowrap; width: 5.5rem; font-variant-numeric: tabular-nums; }
+  blockquote { margin: 1rem 0; padding: 0.1rem 0 0.1rem 0.9rem; border-left: 3px solid #b8b3aa; color: #46443f; font-style: italic; }
+  code { font-family: "SF Mono", Menlo, monospace; font-size: 0.88em; background: #f4f2ee; padding: 0.05rem 0.25rem; border-radius: 3px; }
+  ol, ul { padding-left: 1.2rem; }
+  li { margin: 0.3rem 0; }
+  /* Keep a table whole rather than letting two rows sit alone at the foot of a
+     page, and never leave a heading stranded at the bottom. */
+  table.timeline, table.facts { break-inside: avoid; }
+  h1, h2, h3 { break-after: avoid; }
+  li, blockquote { break-inside: avoid; }
+  .footnote { font-size: 0.86rem; color: #6b6863; margin-top: 2.2rem; border-top: 1px solid #d5d2cc; padding-top: 0.6rem; }
+</style>
+
+<h1>Incident review: checkout-service</h1>
+<p class="sub">8 September 2026 · Payments · circulated 11 September</p>
+
+<table class="facts">
+  <tr><th>Duration</th><td>03:07 – 04:19 UTC (1 h 12 min), of which 41 minutes were full outage</td></tr>
+  <tr><th>Impact</th><td>An estimated 18 400 checkouts failed. 2 100 customers saw a card charged with no order created.</td></tr>
+  <tr><th>Trigger</th><td>Release <code>2026.09.08-1</code>, which changed the connection-pool size from 40 to 8</td></tr>
+  <tr><th>Detection</th><td>Automatic. The error-rate alert fired 90 seconds after the deploy finished.</td></tr>
+  <tr><th>Resolution</th><td>Rollback to <code>2026.09.05-3</code></td></tr>
+</table>
+
+<h2>What happened</h2>
+
+<p>A release went out at 03:05 containing an unrelated change to the checkout timeout, and — accidentally, in the same commit — a change to the database connection pool. The pool dropped from 40 connections to 8. Under the overnight load that is enough; under the 06:00 European morning it would not have been, but we never got that far.</p>
+
+<p>Requests began queueing for a connection immediately. Because the queue is unbounded, they did not fail fast: they waited, held a worker thread, and timed out at 30 seconds. Within four minutes every worker in the fleet was waiting on the pool and the service stopped answering anything at all, including its own health check.</p>
+
+<blockquote>The health check failing is the part worth dwelling on. It is what turned a degraded service into an outage, because the load balancer removed every instance at once and there was nothing left to serve the requests that would have succeeded.</blockquote>
+
+<p>The on-call engineer was paged at 03:07, acknowledged at 03:09, and rolled back at 03:58. The rollback itself took ninety seconds and worked first time.</p>
+
+<h2>Timeline</h2>
+
+<table class="timeline">
+  <tr><th>Time (UTC)</th><th>Event</th></tr>
+  <tr><td>03:05</td><td>Release <code>2026.09.08-1</code> begins rolling out.</td></tr>
+  <tr><td>03:06</td><td>First instance takes traffic. Connection waits appear in the logs; nobody is looking at the logs.</td></tr>
+  <tr><td>03:07</td><td>Error-rate alert fires. Page delivered.</td></tr>
+  <tr><td>03:09</td><td>On-call acknowledges in <code>#payments-oncall</code>.</td></tr>
+  <tr><td>03:11</td><td>Every instance is failing its health check. The service is fully out.</td></tr>
+  <tr><td>03:14</td><td>On-call checks the deploy history and sees the release. Begins reading the diff.</td></tr>
+  <tr><td>03:31</td><td>Database dashboard checked; connection count is low, not high. This is read as “the database is fine”.</td></tr>
+  <tr><td>03:44</td><td>Second engineer joins. Asks why the connection count is <em>low</em> during an outage.</td></tr>
+  <tr><td>03:56</td><td>The pool change is found in the diff.</td></tr>
+  <tr><td>03:58</td><td>Rollback started.</td></tr>
+  <tr><td>04:00</td><td>Old version taking traffic. Error rate falling.</td></tr>
+  <tr><td>04:19</td><td>Error rate at baseline. Incident closed.</td></tr>
+</table>
+
+<h2>Why it took fifty-one minutes</h2>
+
+<p>The rollback was the right action and it was available from the first minute. Three things stood between the page and the decision.</p>
+
+<h3>The runbook says to roll back first, and we did not</h3>
+
+<p>Our own runbook opens with <em>“rolling back is cheap and almost never the wrong call — do it first and diagnose afterwards.”</em> The on-call engineer instead read the diff to find out <em>what</em> to roll back, which is a reasonable instinct and the exact instinct the runbook exists to overrule. Reading a diff at 03:14 costs forty minutes; rolling back costs ninety seconds and loses nothing.</p>
+
+<h3>A low number looked like good news</h3>
+
+<p>The database dashboard showed a connection count of 8 where it normally shows 40. Every graph on that page is drawn so that <em>up</em> is bad, so a number that had fallen through the floor read as healthy. It was in fact the single clearest statement of the cause on any screen we have.</p>
+
+<h3>The change was invisible in review</h3>
+
+<p>The pool size lives in a configuration file that the release tooling rewrites, so the diff that a reviewer sees does not contain it. The value was changed by editing a template three weeks earlier; the release that picked it up was unrelated and its description said <em>“raise checkout timeout to 45 s”</em>. Nobody misread the change. Nobody saw it.</p>
+
+<h2>What we are changing</h2>
+
+<ol>
+  <li><strong>Bound the connection queue.</strong> A request that cannot get a connection within two seconds now fails rather than waiting. A service returning errors is still a service; one holding every thread is not. <em>Owner: Payments. Done.</em></li>
+  <li><strong>Take the pool out of the health check’s path.</strong> The check answers on a dedicated thread and reports the pool as a separate, non-fatal signal, so a struggling service degrades instead of disappearing. <em>Owner: Payments. In review.</em></li>
+  <li><strong>Show configuration changes in the release description.</strong> The tooling knows exactly which rendered values differ from the previous release; it simply never printed them. <em>Owner: Delivery. Planned.</em></li>
+  <li><strong>Alert on the connection count falling, not only rising.</strong> <em>Owner: Platform. Planned.</em></li>
+</ol>
+
+<p>We are deliberately <em>not</em> adding a rule that configuration changes need a second reviewer. The change was not missed for lack of eyes; it was missed because it was not on the page anyone was looking at.</p>
+
+<h2>What went well</h2>
+
+<ul>
+  <li>Detection was automatic and fast: 90 seconds from the deploy finishing to the page.</li>
+  <li>The second engineer joined without being asked, and the question they asked is what ended the incident.</li>
+  <li>The rollback worked first time, in the time it claims to take.</li>
+  <li>Nobody tried to fix forward.</li>
+</ul>
+
+<h2>Customer impact and follow-up</h2>
+
+<p>2 100 customers were charged without an order being created. All were refunded automatically within six hours, and all were emailed. No manual claims have been received.</p>
+
+<p>The remaining 16 300 failed checkouts saw an error page and were not charged. We have no way to tell how many came back.</p>
+
+<h2>Action items</h2>
+
+<table class="timeline">
+  <tr><th>Item</th><th>Owner</th><th>Due</th><th>State</th></tr>
+  <tr><td>Bound the connection queue at two seconds</td><td>Payments</td><td>9 Sep</td><td>Done</td></tr>
+  <tr><td>Health check off the pool&rsquo;s thread</td><td>Payments</td><td>18 Sep</td><td>In review</td></tr>
+  <tr><td>Print changed configuration in the release description</td><td>Delivery</td><td>30 Sep</td><td>Planned</td></tr>
+  <tr><td>Alert on the connection count falling</td><td>Platform</td><td>30 Sep</td><td>Planned</td></tr>
+  <tr><td>Re-read this document at the next on-call handover</td><td>Payments</td><td>22 Sep</td><td>Planned</td></tr>
+</table>
+
+<p class="footnote">This document is sample content for Multirepo Reader. The service, the release numbers and the people are invented; the failure mode is not.</p>
